@@ -5,7 +5,12 @@ fn index() -> &'static str {
     "Hello, world!"
 }
 
+#[get("/<name>")]
+fn hello(name: &str) -> String {
+    format!("Hello {}", name)
+}
+
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index])
+    rocket::build().mount("/", routes![index, hello])
 }
