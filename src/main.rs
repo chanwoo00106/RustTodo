@@ -1,23 +1,30 @@
-use std::collections::HashMap;
-
 struct Todo {
-    map: HashMap<String, bool>,
+    content: String,
+    completed: bool,
 }
 
 impl Todo {
-    fn insert(&mut self, key: String) {
-        self.map.insert(key, false);
+    fn new(content: String) -> Self {
+        Self {
+            content,
+            completed: false,
+        }
     }
 }
 
-fn main() {
-    let mut todo = Todo {
-        map: HashMap::new(),
-    };
+struct Todos {
+    todos: Vec<Todo>,
+}
 
-    todo.insert(String::from("놀기"));
+impl Todos {
+    fn new() -> Todos {
+        Todos { todos: Vec::new() }
+    }
 
-    for i in todo.map {
-        println!("{:?}", i);
+    fn addTodo(mut self, content: String) {
+        let todo = Todo::new(String::from("hello"));
+        self.todos.push(todo)
     }
 }
+
+fn main() {}
