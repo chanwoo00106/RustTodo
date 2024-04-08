@@ -1,12 +1,13 @@
-use axum::{routing::get, Router};
+use axum::{response::Html, routing::get, Router};
 
 #[tokio::main]
 async fn main() {
-    let app = Router::new().route("/", get(index));
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
-}
+    let routes_hello = Router::new().route(
+        "/hello",
+        get(|| async { Html("Hello <strong>World</strong>") }),
+    );
 
-async fn index() -> String {
-    String::from("Hello World")
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
+    println!("->> Listening on {:?}", listener.local_addr().unwrap());
+    axum::serve(listener, routes_hello).await.unwrap();
 }
