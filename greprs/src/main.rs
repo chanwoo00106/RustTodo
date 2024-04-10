@@ -1,4 +1,8 @@
-use std::{env, error::Error, fs::File, io::Read, process};
+extern crate greprs;
+
+use std::{env, process};
+
+use greprs::{run, Config};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -13,34 +17,5 @@ fn main() {
     if let Err(e) = run(config) {
         println!("Application error: {}", e);
         process::exit(1);
-    }
-}
-
-fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let mut f = File::open(config.filename)?;
-
-    let mut content = String::new();
-    f.read_to_string(&mut content)?;
-
-    println!("{}", content);
-
-    Ok(())
-}
-
-struct Config {
-    query: String,
-    filename: String,
-}
-
-impl Config {
-    fn new(args: &[String]) -> Result<Config, &'static str> {
-        if args.len() < 3 {
-            return Err("not enough arguments");
-        }
-
-        let query = args[1].clone();
-        let filename = args[2].clone();
-
-        Ok(Config { query, filename })
     }
 }
