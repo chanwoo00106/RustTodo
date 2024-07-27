@@ -9,21 +9,25 @@ pub struct Request {
     method: Method,
 }
 
-impl Request {
-    fn from_byte_array(buf: &[u8]) -> Result<Self, String> {}
-}
-
 impl TryFrom<&[u8]> for Request {
     type Error = ParseError;
 
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let request = str::from_utf8(value).or(Err(ParseError::InvalidEncoding))?;
+    fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
+        let request = str::from_utf8(buf)?;
+
+        let (method, request) = get_next_word(request).ok_or(ParseError::InvalidRequest)?;
+        let (path, request) = get_next_word(request).ok_or(ParseError::InvalidRequest)?;
+        let (protocol, request) = get_next_word(request).ok_or(ParseError::InvalidRequest)?;
+
+        if protocol != "HTTP/1.1" {
+            return Err(ParseError::InvalidProtocol);
+        }
     }
 }
 
 fn get_next_word(request: &str) -> Option<(&str, &str)> {
     for (i, c) in request.chars().enumerate() {
-        if c == ' ' {
+        if c == ' ' || c == '\r' {
             return Some((&request[..i], &request[i..]));
         }
     }
