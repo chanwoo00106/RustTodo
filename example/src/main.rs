@@ -1,35 +1,23 @@
-use std::time::Duration;
+use std::{sync::Mutex, thread};
 
-use tokio::time;
+static COUNTER: Mutex<i32> = Mutex::new(0);
 
-async fn sleep_10sec() {
-    for i in 1..10 {
-        print!(".");
-        time::sleep(Duration::from_millis(1000)).await;
-    }
+fn inc_counter() {
+    let mut num = COUNTER.lock().unwrap();
+    *num += 1;
 }
 
-async fn calc_sum(start: i32, end: i32) -> i32 {
-    let mut sum = 0;
+fn main() {
+    let mut thread_vec = vec![];
 
-    for i in start..=end {
-        print!("{} ", i);
-        sum += i;
+    for _ in 0..100 {
+        let th = thread::spawn(inc_counter);
+        thread_vec.push(th);
     }
 
-    sum
-}
+    for th in thread_vec {
+        th.join().unwrap();
+    }
 
-async fn calc() -> i32 {
-    let f1 = sleep_10sec();
-    let f2 = calc_sum(1, 10);
-    let (_, sum) = tokio::join!(f1, f2);
-
-    sum
-}
-
-#[tokio::main]
-async fn main() {
-    let sum = calc().await;
-    println!("{}", sum);
+    println!("결과: {}", *COUNTER.lock().unwrap());
 }
