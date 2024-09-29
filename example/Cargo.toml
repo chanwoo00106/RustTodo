@@ -10,3 +10,4 @@ cargo-expand = "1.0.88"
 rand = "0.8.5"
 futures = "0.3"
 tokio = { version = "1.25.0", features = ["full"] }
+sqlite = "0.36.1"

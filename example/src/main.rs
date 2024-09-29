@@ -1,16 +1,22 @@
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize)]
-struct Point {
-    x: i32,
-    y: i32,
-}
+use sqlite::State;
 
 fn main() {
-    let pt = Point { x: 10, y: 20 };
-    let json = serde_json::to_string(&pt).unwrap();
-    println!("json : {}", json);
+    let connection = sqlite::open(":memory:").unwrap();
 
-    let pt: Point = serde_json::from_str(&json).unwrap();
-    println!("x: {}, y: {}", pt.x, pt.y);
+    let query = "
+        CREATE TABLE users (name TEXT, age INTEGER);
+        INSERT INTO users VALUES ('루나', 3);
+        INSERT INTO users VALUES ('러스트', 13);
+    ";
+
+    connection.execute(query).unwrap();
+
+    let query = "SELECT * FROM users where age > ?";
+    let mut statement = connection.prepare(query).unwrap();
+    statement.bind((1, 5)).unwrap();
+
+    while let Ok(State::Row) = statement.next() {
+        println!("name = {}", statement.read::<String, _>("name").unwrap());
+        println!("age = {}", statement.read::<i64, _>("age").unwrap());
+    }
 }
