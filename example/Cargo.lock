@@ -386,6 +386,8 @@ dependencies = [
  "cargo-expand",
  "futures",
  "rand",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 

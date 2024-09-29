@@ -1,23 +1,16 @@
-use std::{sync::Mutex, thread};
+use serde::{Deserialize, Serialize};
 
-static COUNTER: Mutex<i32> = Mutex::new(0);
-
-fn inc_counter() {
-    let mut num = COUNTER.lock().unwrap();
-    *num += 1;
+#[derive(Serialize, Deserialize)]
+struct Point {
+    x: i32,
+    y: i32,
 }
 
 fn main() {
-    let mut thread_vec = vec![];
+    let pt = Point { x: 10, y: 20 };
+    let json = serde_json::to_string(&pt).unwrap();
+    println!("json : {}", json);
 
-    for _ in 0..100 {
-        let th = thread::spawn(inc_counter);
-        thread_vec.push(th);
-    }
-
-    for th in thread_vec {
-        th.join().unwrap();
-    }
-
-    println!("결과: {}", *COUNTER.lock().unwrap());
+    let pt: Point = serde_json::from_str(&json).unwrap();
+    println!("x: {}, y: {}", pt.x, pt.y);
 }
