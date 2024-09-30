@@ -1,22 +1,14 @@
-use sqlite::State;
+use hyper::{body::HttpBody, Client};
+use tokio::io::{stdout, AsyncWriteExt as _};
 
-fn main() {
-    let connection = sqlite::open(":memory:").unwrap();
+#[tokio::main]
+async fn main() {
+    let client = Client::new();
+    let uri = "http://httpbin.org/ip".parse().unwrap();
+    let mut resp = client.get(uri).await.unwrap();
+    println!("Response : {}", resp.status());
 
-    let query = "
-        CREATE TABLE users (name TEXT, age INTEGER);
-        INSERT INTO users VALUES ('루나', 3);
-        INSERT INTO users VALUES ('러스트', 13);
-    ";
-
-    connection.execute(query).unwrap();
-
-    let query = "SELECT * FROM users where age > ?";
-    let mut statement = connection.prepare(query).unwrap();
-    statement.bind((1, 5)).unwrap();
-
-    while let Ok(State::Row) = statement.next() {
-        println!("name = {}", statement.read::<String, _>("name").unwrap());
-        println!("age = {}", statement.read::<i64, _>("age").unwrap());
+    while let Some(chunk) = resp.body_mut().data().await {
+        stdout().write_all(&chunk.unwrap()).await.unwrap();
     }
 }
