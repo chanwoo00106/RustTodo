@@ -1,23 +1,34 @@
-use hyper::{body::Buf, Client};
-use serde::Deserialize;
+use hyper::{
+    service::{make_service_fn, service_fn},
+    Body, Method, Request, Response, Server, StatusCode,
+};
 
-#[derive(Deserialize, Debug)]
-struct User {
-    id: i32,
-    name: String,
+type GenericError = Box<dyn std::error::Error + Send + Sync>;
+type Result<T> = std::result::Result<T, GenericError>;
+
+async fn response_examples(req: Request<Body>) -> Result<Response<Body>> {
+    let index_html = String::from("<h1>Hello World</h1>");
+    let notfound_html = String::from("<h1>404 Not Found</h1>");
+
+    match (req.method(), req.uri().path()) {
+        (&Method::GET, "/") => Ok(Response::new(index_html.into())),
+        _ => Ok(Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(notfound_html.into())
+            .unwrap()),
+    }
 }
 
 #[tokio::main]
-async fn main() {
-    let url = "http://jsonplaceholder.typicode.com/users".parse().unwrap();
+async fn main() -> Result<()> {
+    let addr = "127.0.0.1:8080".parse().unwrap();
+    let new_service = make_service_fn(move |_| async {
+        Ok::<_, GenericError>(service_fn(move |req| response_examples(req)))
+    });
 
-    let client = Client::new();
-    let res = client.get(url).await.unwrap();
-    let body = hyper::body::aggregate(res).await.unwrap();
+    let server = Server::bind(&addr).serve(new_service);
+    println!("Listening on http://{}", addr);
+    server.await?;
 
-    let users: Vec<User> = serde_json::from_reader(body.reader()).unwrap();
-
-    for user in users {
-        println!("사용자 : {:?}", user);
-    }
+    Ok(())
 }
