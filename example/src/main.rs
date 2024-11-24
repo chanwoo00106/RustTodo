@@ -1,34 +1,31 @@
-use hyper::{
-    service::{make_service_fn, service_fn},
-    Body, Method, Request, Response, Server, StatusCode,
-};
+use std::fs;
+use std::io;
 
-type GenericError = Box<dyn std::error::Error + Send + Sync>;
-type Result<T> = std::result::Result<T, GenericError>;
+fn list_files_and_directories(path: &std::path::Path, depth: usize) -> io::Result<()> {
+    if path.is_dir() {
+        let entries = fs::read_dir(path)?;
+        for entry in entries {
+            let entry = entry?;
+            let entry_path = entry.path();
+            let file_name = entry_path
+                .file_name()
+                .and_then(|os_str| os_str.to_str())
+                .unwrap_or("");
+            println!("{:indent$}{}", "", file_name, indent = depth);
 
-async fn response_examples(req: Request<Body>) -> Result<Response<Body>> {
-    let index_html = String::from("<h1>Hello World</h1>");
-    let notfound_html = String::from("<h1>404 Not Found</h1>");
-
-    match (req.method(), req.uri().path()) {
-        (&Method::GET, "/") => Ok(Response::new(index_html.into())),
-        _ => Ok(Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(notfound_html.into())
-            .unwrap()),
+            if entry_path.is_dir() {
+                list_files_and_directories(&entry_path, depth + 2)?;
+            }
+        }
     }
+
+    Ok(())
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let addr = "127.0.0.1:8080".parse().unwrap();
-    let new_service = make_service_fn(move |_| async {
-        Ok::<_, GenericError>(service_fn(move |req| response_examples(req)))
-    });
-
-    let server = Server::bind(&addr).serve(new_service);
-    println!("Listening on http://{}", addr);
-    server.await?;
+fn main() -> io::Result<()> {
+    let current_dir = std::env::current_dir()?;
+    println!("{}", current_dir.display());
+    list_files_and_directories(&current_dir, 0)?;
 
     Ok(())
 }
