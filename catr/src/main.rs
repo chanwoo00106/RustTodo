@@ -1,3 +1,9 @@
+use std::{
+    fs::File,
+    io::{self, BufRead, BufReader},
+};
+
+use anyhow::Result;
 use clap::{Arg, ArgAction, Command, Parser};
 
 #[derive(Debug, Parser)]
@@ -48,7 +54,27 @@ fn get_args() -> Args {
     }
 }
 
+fn open(filename: &str) -> Result<Box<dyn BufRead>> {
+    match filename {
+        "-" => Ok(Box::new(BufReader::new(io::stdin()))),
+        _ => Ok(Box::new(BufReader::new(File::open(filename)?))),
+    }
+}
+
+fn run(args: Args) -> Result<()> {
+    for filename in args.files {
+        match open(&filename) {
+            Err(err) => eprintln!("Failed to open {filename}: {err}"),
+            Ok(_) => println!("Opened {filename}"),
+        }
+    }
+
+    Ok(())
+}
+
 fn main() {
-    let args = Args::parse();
-    println!("{args:#?}")
+    if let Err(e) = run(get_args()) {
+        eprintln!("{e}");
+        std::process::exit(1);
+    }
 }
