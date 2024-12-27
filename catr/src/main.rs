@@ -77,7 +77,7 @@ fn run(args: Args) -> Result<()> {
                     }
 
                     if args.number_lines || args.number_nonblank_lines {
-                        print!("{}  ", num);
+                        print!("{num:>6}\t");
                     }
 
                     println!("{}", line);
