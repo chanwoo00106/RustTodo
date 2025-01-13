@@ -18,6 +18,11 @@ struct Args {
     count: bool,
 }
 
+struct Data {
+    data: String,
+    count: i32,
+}
+
 fn open(filename: &str) -> Result<Box<dyn BufRead>> {
     match filename {
         "-" => Ok(Box::new(BufReader::new(io::stdin()))),
@@ -34,17 +39,30 @@ fn run(args: Args) -> Result<()> {
         }
     };
 
-    let mut a: Vec<String> = Vec::new();
+    let mut a: Vec<Data> = Vec::new();
 
     for line in file.lines() {
         let line = line?;
-        a.push(line);
+
+        if let Some(data) = a.last_mut() {
+            if data.data == line {
+                data.count += 1;
+
+                continue;
+            }
+        }
+
+        a.push(Data {
+            data: line,
+            count: 1,
+        });
     }
 
-    a.dedup();
-
-    for (count, line) in a.iter().enumerate() {
-        println!("{line}",);
+    for line in a {
+        if args.count {
+            print!("{:>8} ", line.count);
+        }
+        println!("{}", line.data);
     }
 
     Ok(())
