@@ -1,10 +1,10 @@
 use std::{
     fs::File,
-    io::{self, BufRead, BufReader},
+    io::{self, BufRead, BufReader, Write},
     process,
 };
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{ArgAction, Parser};
 
 #[derive(Parser)]
@@ -18,11 +18,6 @@ struct Args {
     count: bool,
 }
 
-struct Data {
-    data: String,
-    count: i32,
-}
-
 fn open(filename: &str) -> Result<Box<dyn BufRead>> {
     match filename {
         "-" => Ok(Box::new(BufReader::new(io::stdin()))),
@@ -31,38 +26,48 @@ fn open(filename: &str) -> Result<Box<dyn BufRead>> {
 }
 
 fn run(args: Args) -> Result<()> {
-    let file = match open(&args.in_file) {
-        Ok(file) => file,
-        Err(e) => {
-            eprintln!("{e}");
-            process::exit(1);
-        }
+    let mut line = String::new();
+    let mut prev_line = String::new();
+    let mut count = 0;
+    let mut file = open(&args.in_file).map_err(|e| anyhow!("{}: {e}", args.in_file))?;
+
+    let mut outfile: Box<dyn Write> = match args.out_file {
+        Some(out_file) => Box::new(File::create(out_file)?),
+        _ => Box::new(io::stdout()),
     };
 
-    let mut a: Vec<Data> = Vec::new();
-
-    for line in file.lines() {
-        let line = line?;
-
-        if let Some(data) = a.last_mut() {
-            if data.data == line {
-                data.count += 1;
-
-                continue;
-            }
+    let mut print = |count: i32, line: &str| -> Result<()> {
+        if args.count {
+            write!(&mut outfile, "{:>4} {}", count, line)?;
+        } else {
+            write!(&mut outfile, "{}", line)?;
         }
 
-        a.push(Data {
-            data: line,
-            count: 1,
-        });
+        Ok(())
+    };
+
+    loop {
+        file.read_line(&mut line)?;
+
+        if line.bytes().count() == 0 {
+            break;
+        }
+
+        if line.trim_end() != prev_line.trim_end() {
+            if count > 0 {
+                print(count, &prev_line)?;
+            }
+            prev_line = line.clone();
+            count = 0;
+        }
+
+        count += 1;
+
+        line.clear();
     }
 
-    for line in a {
-        if args.count {
-            print!("{:>8} ", line.count);
-        }
-        println!("{}", line.data);
+    if count > 0 {
+        print(count, &prev_line)?;
     }
 
     Ok(())
